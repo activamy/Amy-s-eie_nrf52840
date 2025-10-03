@@ -1,3 +1,10 @@
-git commit
+git commit - confirm the changes onto github
+git branch - 
+git checkout - 
+git pull - 
+git push - 
+git merge - 
+git rebase - 
+git fetch - 
 
 la dee da dee da
