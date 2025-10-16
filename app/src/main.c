@@ -6,12 +6,22 @@
 #include <zephyr/drivers/gpio.h>
 
 #define LED0_NODE DT_ALIAS(led0)
+#define LED1_NODE DT_ALIAS(led1)
+#define LED2_NODE DT_ALIAS(led2)
+#define LED3_NODE DT_ALIAS(led3)
 
 static const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(LED1_NODE, gpios);
+static const struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(LED2_NODE, gpios);
+static const struct gpio_dt_spec led3 = GPIO_DT_SPEC_GET(LED3_NODE, gpios);
+
+// Attempt at function initializing
+// int foo(led);
 
 int main(void) {
     int ret;
 
+    //LED0
     if(!gpio_is_ready_dt(&led0)) {
         return -1;
     }
@@ -21,10 +31,59 @@ int main(void) {
         return ret;
     }
 
+    //LED1
+    if(!gpio_is_ready_dt(&led1)) {
+        return -1;
+    }
+
+    ret = gpio_pin_configure_dt(&led1, GPIO_OUTPUT_ACTIVE);
+    if (ret < 0) {
+        return ret;
+    }
+
+    //LED2
+    if(!gpio_is_ready_dt(&led2)) {
+        return -1;
+    }
+
+    ret = gpio_pin_configure_dt(&led2, GPIO_OUTPUT_ACTIVE);
+    if (ret < 0) {
+        return ret;
+    }
+
+    //LED3
+    if(!gpio_is_ready_dt(&led3)) {
+        return -1;
+    }
+
+    ret = gpio_pin_configure_dt(&led3, GPIO_OUTPUT_ACTIVE);
+    if (ret < 0) {
+        return ret;
+    }
+
     while(1) {
         gpio_pin_toggle_dt(&led0);
+        gpio_pin_toggle_dt(&led1);
+        gpio_pin_toggle_dt(&led2);
+        gpio_pin_toggle_dt(&led3);
 
         k_msleep(1000);
     }
     return 0;
 }
+
+// Attempt at function making
+// int foo(led)
+// {
+//     int ret;
+
+//     //LED0
+//     if(!gpio_is_ready_dt(&led0)) {
+//         return -1;
+//     }
+
+//     ret = gpio_pin_configure_dt(&led0, GPIO_OUTPUT_ACTIVE);
+//     if (ret < 0) {
+//         return ret;
+//     }
+// }
