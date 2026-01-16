@@ -4,6 +4,8 @@
 
 
 #include <zephyr/smf.h>
+#include <math.h>
+
 
 #include "LED.h"
 #include "BTN.h"
@@ -36,8 +38,14 @@ static void display_state_entry(void* o);
 static enum smf_state_result display_state_run(void* o);
 static void display_state_exit(void* o);
 
- // Functions
 
+
+
+ // Functions
+void blink_led(led_id led_num);
+""" Turn on a specific led for 100ms and then turn off
+    Require: led_num
+"""
 /*---------------------------------------------------------
  * Typedefs
  *-------------------------------------------------------*/
@@ -53,11 +61,16 @@ typedef struct {
     struct smf_ctx ctx;
 
     uint8_t count, current_duty_cycle;
-    int binary[BINARY_LENGTH], decimal, button_count;
+    int binary[BINARY_LENGTH], decimal, button_count, string_count, i;
     char ascii_string[256];
-    bool list_clear;
 
 } state_objects_t;
+
+
+
+
+
+
 
 
 /*---------------------------------------------------------
@@ -74,14 +87,17 @@ static const struct smf_state states[] = {
 static state_objects_t state_objects;
 
 
+
+
+
+
 /*---------------------------------------------------------
  * State Definitions
  *-------------------------------------------------------*/
 void state_machine_init() {
-    state_objects.count = 0;
+    state_objects.button_count = 0;
     state_objects.current_duty_cycle = 0;
     state_objects.decimal = 0;
-    state_objetcs.list_clear = FALSE;
 
     smf_set_initial(SMF_CTX(&state_objects), &states[CLEAR_LIST_1HZ]);
 }
@@ -90,19 +106,24 @@ int state_machine_run() {
     return smf_run_states(SMF_CTX(&state_objects));
 }
 
+
+
+
+
+
+
 // Clean State
 static void clean_state_entry(void* o) {
-    state_objects.count = 0;
+    state_objects.button_count = 0;
+    state_objects.string_count = 0;
     LED_blink(LED3, LED_1HZ);
     printk("Entering Clean State \n");
 }
 
 static enum smf_state_result clean_state_run(void* o) {
-    if (state_objects.clear_list == FALSE) {
-        ascii_string[0] = '\0';
-        for (int i = 0; i < BINARY_LENGTH; i++) {
-            a[i] = 0;
-        }
+    ascii_string[0] = '\0';
+    for (state_objects.i = 0; i < BINARY_LENGTH; i++) {
+        binary[i] = 0;
     }
     smf_set_state(SMF_CTX(&states_objects), &states[INPUT_LIST_1HZ]);
 }
@@ -117,30 +138,42 @@ static void input_state_entry(void* o) {
     LED_blink(LED3, LED_1HZ);
     printk("Entering Input State \n");
     state_objects.button_count = 0;
+    for (state_objects.i = 0; i < BINARY_LENGTH; i++) {
+        binary[i] = 0;
+    }
 }
 
 static enum smf_state_result input_state_run(void* o) {
+    
+    // Input values of 0s and 1s
     if (BTN_check_clear_pressed(BTN0)) {
         state_objects.binary[state_objects.button_count] = 0;
         state_objects.button_count ++;
+        blink_led(LED0);
     }
 
     if (BTN_check_clear_pressed(BTN1)) {
         state_objects.binary[state_objects.button_count] = 1;
         state_objects.button_count ++;
+        blink_led(LED1);
+
     }
 
+    // If 2 is pressed go to the clean state
     if (BTN_check_clear_pressed(BTN2)) {
         smf_set_state(SMX_CTX(&states_objects), &states[CLEAR_LIST_1HZ]);
     }
 
+    // If 3 is pressed, go to ASCII Save
     if (BTN_check_clear_pressed(BTN3)) {
         smf_set_state(SMX_CTX(&states_objects), &states[ASCII_SAVE_4HZ]);
     }
 
-    if (count > BINARY_MAX_LENGTH) {
-        smf_set_state(SMX_CTX(&states_objects), &states[CLEAR_LIST_1HZ]);
+    // If the binary length has reached the max value, automatically go to ASCII Save
+    if (state_objects.button_count == BINARY_MAX_LENGTH) {
+        smf_set_state(SMX_CTX(&states_objects), &states[ASCII_SAVE_4HZ]);
     }
+
 }
 
 static void input_state_exit(void* o) {
@@ -151,9 +184,25 @@ static void input_state_exit(void* o) {
 // ASCII Save State
 static void ascii_save_entry(void* o) {
     printk("Entering ASCII Save Mode");
+    state_objects.i = 0;
 }
 
-static enum smf_state_result ascii_save_run(void* o);
+static enum smf_state_result ascii_save_run(void* o) {
+    //covert binary to decimal (binary is saved backwards)
+    while (state_objects.i < button_count) {
+        decimal += binary[i] * pow(2, i);
+        state_objects.i++;
+    }
+    
+    // decimal to ascii char
+    state_objects.ascii_string[state_objects.string_count] = (char) decimal;
+    state_objects.string_count++;
+
+    // 0 + 1 returns to input state
+    // 2 goes to clean state
+    // 3 saves the string
+}
+
 static void ascii_save_exit(void* o) {
     printk("Exiting ASCII Save Mode");
 }
@@ -167,6 +216,13 @@ static void display_state_entry(void* o);
 static enum smf_state_result display_state_run(void* o);
 static void display_state_exit(void* o);
 
+
 /*---------------------------------------------------------
  * Function Definitions
  *-------------------------------------------------------*/
+
+void blink_led(led_id led_num) {
+    LED_set(led_num, LED_ON);
+    k_msleep(100);
+    LED_set(LED_OFF);
+}
