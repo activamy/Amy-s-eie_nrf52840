@@ -183,6 +183,7 @@ static void input_state_exit(void* o) {
 
 // ASCII Save State
 static void ascii_save_entry(void* o) {
+    LED_blink(LED3, LED_4HZ)
     printk("Entering ASCII Save Mode");
     state_objects.i = 0;
 }
@@ -199,22 +200,73 @@ static enum smf_state_result ascii_save_run(void* o) {
     state_objects.string_count++;
 
     // 0 + 1 returns to input state
+    if (BTN_check_clear_pressed(BTN1) || BTN_check_clear_pressed(BTN0)){
+        smf_set_state(SMX_CTX(&state_objects), &states[INPUT_LIST_1HZ])
+    }
+
     // 2 goes to clean state
+    if (BTN_check_clear_pressed(BTN2)) {
+        smf_set_state(SMF_CTX(&state_objects), &states[CLEAR_LIST_1HZ])
+    }
+
     // 3 saves the string
+    if(BTN_check_clear_pressed(BTN3)) {
+        smf_set_state(SMF_CTX(&state_objects), &states[STRING_SAVE_16HZ])
+    }
 }
 
 static void ascii_save_exit(void* o) {
     printk("Exiting ASCII Save Mode");
 }
 
-// String Save State
-static void string_save_entry(void* o);
-static enum smf_state_result string_save_run(void* o);
-static void string_save_exit(void* o);
 
-static void display_state_entry(void* o);
-static enum smf_state_result display_state_run(void* o);
-static void display_state_exit(void* o);
+
+
+
+
+// String Save State
+static void string_save_entry(void* o) {
+    LED_blink(LED3, LED_16HZ);
+    printk("Entering String Save Mode");
+}
+
+static enum smf_state_result string_save_run(void* o) {
+    // 2 clears the list
+    if (BTN_check_clear_pressed(BTN2)) {
+        smf_set_state(SMF_CTX(&state_objects), &states[CLEAR_LIST_1HZ]);
+    }
+
+    // 3 moves to display state
+    if (BTN_check_clear_pressed(BTN3)) {
+        smf_set_state(SMF_CTX(&state_objects), &states[DISPLAY_STRING_OFF])
+    }
+}
+static void string_save_exit(void* o) {
+    printk("Exiting String Save Mode");
+}
+
+
+
+static void display_state_entry(void* o) {
+    printk("Entering Display Mode");
+}
+static enum smf_state_result display_state_run(void* o) {
+    // print the ascii string into the serial monitor
+    
+    // 2 Clears list
+    if (BTN_check_clear_pressed(BTN2)) {
+        smf_set_state(SMF_CTX(&state_objects), &states[CLEAR_LIST_1HZ]);
+    }
+}
+
+static void display_state_exit(void* o) {
+    printk("Exiting Display Mode");
+}
+
+
+
+
+
 
 
 /*---------------------------------------------------------
