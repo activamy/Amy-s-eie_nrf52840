@@ -61,7 +61,7 @@ typedef struct {
     struct smf_ctx ctx;
 
     uint8_t count, current_duty_cycle;
-    int binary[BINARY_LENGTH], decimal, button_count, string_count, i;
+    int binary[BINARY_LENGTH], decimal, button_count, string_count, i, first_entry;
     char ascii_string[256];
 
 } state_objects_t;
@@ -186,18 +186,18 @@ static void ascii_save_entry(void* o) {
     LED_blink(LED3, LED_4HZ)
     printk("Entering ASCII Save Mode");
     state_objects.i = 0;
+    state_objects.first_entry = 1;
 }
 
 static enum smf_state_result ascii_save_run(void* o) {
     //covert binary to decimal (binary is saved backwards)
-    while (state_objects.i < button_count) {
-        decimal += binary[i] * pow(2, i);
-        state_objects.i++;
+    if (state_objects.first_entry = 1) {            // To prevent continous adding after the initial while loop ended
+        while (state_objects.i < button_count) {
+            decimal += binary[i] * pow(2, i);
+            state_objects.i++;
+        }
+        state_objects.first_entry = 0;
     }
-    
-    // decimal to ascii char
-    state_objects.ascii_string[state_objects.string_count] = (char) decimal;
-    state_objects.string_count++;
 
     // 0 + 1 returns to input state
     if (BTN_check_clear_pressed(BTN1) || BTN_check_clear_pressed(BTN0)){
@@ -217,6 +217,10 @@ static enum smf_state_result ascii_save_run(void* o) {
 
 static void ascii_save_exit(void* o) {
     printk("Exiting ASCII Save Mode");
+
+    // decimal to ascii char
+    state_objects.ascii_string[state_objects.string_count] = (char) decimal;
+    state_objects.string_count++;       // Increase the list index at the end
 }
 
 
