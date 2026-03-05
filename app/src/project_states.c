@@ -94,7 +94,106 @@ static project_states_objects_t state_objects;
  *--------------------------------------------------------------*/
 
  void project_states_init() {
-    state_objects.round_number = 1;
+    state_objects.round_number = 0;
+    state_objects.project_rnd // clear
 
     smf_set_initial(SMF_CTX(&state_objects), &states[RND_1]);
+ }
+
+ int project_states_run() {
+    return smf_run_state(SMF_CTX(&state_objects));
+ }
+
+
+ // Round 1 Initialization
+ static void start_entry(void* o) {
+
+ }
+
+ static void start_run(void* o) {
+
+ }
+
+ static void start_exit(void* o) {
+
+ }
+
+
+ // Sticth Selection
+ static void selection_entry(void* o) {
+
+ } 
+ static void selection_run(void* o) {
+
+ }
+ static void selection_exit(void o) {
+
+ }
+
+
+ // Amount of Stitches
+ static void amount_entry(void* o) {
+
+ }
+ static void amount_run(void* o) {
+
+ }
+ static void amount_exit(void* o) {
+
+ }
+   
+
+ // Rnd Review
+ static void review_entry(void* o) {
+
+ }
+ 
+ static void review_run(void* o) {
+
+ }
+
+ static void review_exit(void* o) {
+
+ }
+  
+
+ // End Round
+ static void end_entry(void* o) {
+
+ }
+
+ static void end_run(void* o) {
+
+ }
+
+ static void end_exit(void* o) {
+
+ }
+
+
+ // Delete Option
+ static void delete_entry(void* o) {
+
+ }
+
+ static void delete_run(void* o) {
+
+ }
+
+ static void delete_exit(void* o) {
+
+ }
+ 
+
+ // Complete the Project
+ static void final_entry(void* o) {
+
+ }
+
+ static void final_run(void* o) {
+
+ }
+
+ static void final_exit(void* o) {
+
  }
