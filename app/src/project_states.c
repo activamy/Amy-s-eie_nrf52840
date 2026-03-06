@@ -264,7 +264,7 @@ static project_states_objects_t state_objects;
     }
 
     // Convert binary to Decimal
-    printk("Binary Count: %d", state_objects.count); //DEBUGGING!!!!! DELETE!!!!!
+    
     
     if (BTN_check_clear_pressed(BTN2) || (state_objects.count == 4)) {
         state_objects.decimal_conversion = binaryToDecimal(state_objects.binary_amount, state_objects.count);
