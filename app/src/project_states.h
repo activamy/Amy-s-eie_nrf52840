@@ -7,6 +7,6 @@
 #define PROJECT_STATES_H
 
 void project_states_init();
-void project_states_run();
+int project_states_run();
 
 #endif /* PROJECT_STATES_H */

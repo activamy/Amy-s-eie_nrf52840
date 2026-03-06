@@ -9,6 +9,8 @@
 #include "BTN.h"
 #include "LED.h"
 
+#include <math.h>
+#include <string.h>
 
 /*----------------------------------------------------------------
  * Function Prototypes
@@ -45,6 +47,22 @@ static void final_exit(void* o);
 
 
  // Functions
+int binaryToDecimal(int binary[], int length);
+/*Converts binary to decimal.
+   Require
+     A binary value the user has inputted and the length of the binary 
+     number.
+   Promises: The decimal equivalent of the binary number.
+   */
+
+void led_setting(int led_num, char *state);
+/*
+    Require
+      blah blah blah
+    Promises: blah blah blah
+*/
+
+void turn_off_all_leds();
 
 
 /*----------------------------------------------------------------
@@ -61,15 +79,38 @@ enum states_def {
     FINISH_PROJECT
 };
 
+enum stitches {
+    NO_STITCHES,
+    MAGIC_RING,
+    SLIP_KNOT,
+    CHAIN, 
+    SINGLE_CROCHET, 
+    DOUBLE_CROCHET, 
+    HALF_DOUBLE_CROCHET
+};
+
+static const char *stitch_names[] = {
+    "",
+    "Magic ring",
+    "Slip knot",
+    "Chain",
+    "Single Crochet",
+    "Double Crochet",
+    "Half Double Crochet",
+};
+
 typedef struct {
   struct smf_ctx ctx;
 
-  int round_number;
+  int round_number; // starts at zero, but = rnd 1
+  int stitch_number;
+  int places, count;
+  int binary_amount[4]; // binary value from 0 to 9
+  int decimal_conversion, decimal_amount;
   
-  char project_rnd[20]; // set limit for how many rounds now, edit later
-  char round_stitches[20];
-
+  enum stitches project_rnd[20][20]; // set limit for how many rounds now and how many can go in each list, edit later
 } project_states_objects_t;
+
 
 
 /*----------------------------------------------------------------
@@ -95,8 +136,8 @@ static project_states_objects_t state_objects;
 
  void project_states_init() {
     state_objects.round_number = 0;
-    state_objects.project_rnd // clear
-
+    memset(state_objects.project_rnd, 0, sizeof(state_objects.project_rnd));
+    memset(state_objects.binary_amount, 0, sizeof(state_objects.binary_amount));
     smf_set_initial(SMF_CTX(&state_objects), &states[RND_1]);
  }
 
@@ -107,15 +148,31 @@ static project_states_objects_t state_objects;
 
  // Round 1 Initialization
  static void start_entry(void* o) {
+    memset(state_objects.project_rnd, 0, sizeof(state_objects.project_rnd));
+    memset(state_objects.binary_amount, 0, sizeof(state_objects.binary_amount));
+    state_objects.round_number = 0;
+    state_objects.stitch_number = 0;
+    printk("Project Begin: \n\nRound 1: ");
+}
 
- }
+ static enum smf_state_result start_run(void* o) {
+    if (BTN_check_clear_pressed(BTN0)) {
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = MAGIC_RING;
+        printk("%s, ", stitch_names[MAGIC_RING]);
+        smf_set_state(SMF_CTX(&state_objects), &states[STITCH_SELECTOR]);
+    }
 
- static void start_run(void* o) {
+    if (BTN_check_clear_pressed(BTN1)) {
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = SLIP_KNOT;
+        printk("%s, ", stitch_names[SLIP_KNOT]);
+        smf_set_state(SMF_CTX(&state_objects), &states[STITCH_SELECTOR]);
+    }
 
+    return SMF_EVENT_HANDLED;
  }
 
  static void start_exit(void* o) {
-
+    state_objects.stitch_number++;
  }
 
 
@@ -123,21 +180,117 @@ static project_states_objects_t state_objects;
  static void selection_entry(void* o) {
 
  } 
- static void selection_run(void* o) {
+
+ static enum smf_state_result selection_run(void* o) {
+    if (BTN_check_clear_pressed(BTN0)) {
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = CHAIN;
+        printk("%s ", stitch_names[CHAIN]);
+        smf_set_state(SMF_CTX(&state_objects), &states[AMOUNT]);
+    }
+
+    if (BTN_check_clear_pressed(BTN1)) {
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = SINGLE_CROCHET;
+        printk("%s ", stitch_names[SINGLE_CROCHET]);
+        smf_set_state(SMF_CTX(&state_objects), &states[AMOUNT]);
+    }
+
+    if (BTN_check_clear_pressed(BTN2)) {
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = DOUBLE_CROCHET;
+        printk("%s ", stitch_names[DOUBLE_CROCHET]);
+        smf_set_state(SMF_CTX(&state_objects), &states[AMOUNT]);
+    }
+
+    if (BTN_check_clear_pressed(BTN3)) {
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = HALF_DOUBLE_CROCHET;
+        printk("%s ", stitch_names[HALF_DOUBLE_CROCHET]);
+        smf_set_state(SMF_CTX(&state_objects), &states[AMOUNT]);
+    }
+
+    return SMF_EVENT_HANDLED;
+}
+
+ static void selection_exit(void* o) {
 
  }
- static void selection_exit(void o) {
-
- }
 
 
- // Amount of Stitches
+ // Amount of Stitches -------- Only use 0s and 1s
  static void amount_entry(void* o) {
+    state_objects.places = 0;
+    state_objects.count = 0;
+    state_objects.decimal_conversion = 0;
+    state_objects.decimal_amount = 0;
+    turn_off_all_leds(); // Turn off all led
 
+    memset(state_objects.binary_amount, 0, sizeof(state_objects.binary_amount));
  }
- static void amount_run(void* o) {
 
+ static enum smf_state_result amount_run(void* o) {
+    led_setting(state_objects.places, "ON"); // Turn / keep on Led for specific place values
+
+    // uses idea of bcd to determine ones, tens, and hundreds place amount
+    // For ones place:
+    if (state_objects.places == 0) {
+        if (BTN_check_clear_pressed(BTN0)) {
+            state_objects.binary_amount[state_objects.count] = 0;
+            state_objects.count++;
+        }
+        if (BTN_check_clear_pressed(BTN1)) {
+            state_objects.binary_amount[state_objects.count] = 1;
+            state_objects.count++;
+        }
+    }
+    // For tens place:
+     if (state_objects.places == 1) {
+        if (BTN_check_clear_pressed(BTN0)) {
+            state_objects.binary_amount[state_objects.count] = 0;
+            state_objects.count++;
+        }
+        if (BTN_check_clear_pressed(BTN1)) {
+            state_objects.binary_amount[state_objects.count] = 1;
+            state_objects.count++;
+        }
+    }
+    // For hundreds place:
+     if (state_objects.places == 2) {
+        if (BTN_check_clear_pressed(BTN0)) {
+            state_objects.binary_amount[state_objects.count] = 0;
+            state_objects.count++;
+        }
+        if (BTN_check_clear_pressed(BTN1)) {
+            state_objects.binary_amount[state_objects.count] = 1;
+            state_objects.count++;
+        }
+    }
+
+    // Convert binary to Decimal
+    printk("Binary Count: %d", state_objects.count); //DEBUGGING!!!!! DELETE!!!!!
+    
+    if (BTN_check_clear_pressed(BTN2) || (state_objects.count == 4)) {
+        state_objects.decimal_conversion = binaryToDecimal(state_objects.binary_amount, state_objects.count);
+        
+        if (state_objects.places == 0) {
+            state_objects.decimal_amount = state_objects.decimal_conversion;
+        }
+        if (state_objects.places == 1) {
+            state_objects.decimal_amount += state_objects.decimal_conversion * 10;
+        }
+        if (state_objects.places == 2) {
+            state_objects.decimal_amount += state_objects.decimal_conversion * 100;
+        }
+
+        state_objects.places++;
+        state_objects.count = 0;
+    }
+
+    if (state_objects.places == 3) {
+        printk("%d ", state_objects.decimal_amount);
+        smf_set_state(SMF_CTX(&state_objects), &states[RND_REVIEW]);
+    }
+
+    return SMF_EVENT_HANDLED;
  }
+
  static void amount_exit(void* o) {
 
  }
@@ -148,7 +301,8 @@ static project_states_objects_t state_objects;
 
  }
  
- static void review_run(void* o) {
+ static enum smf_state_result review_run(void* o) {
+    return SMF_EVENT_HANDLED;
 
  }
 
@@ -162,8 +316,10 @@ static project_states_objects_t state_objects;
 
  }
 
- static void end_run(void* o) {
+ static enum smf_state_result end_run(void* o) {
+    return SMF_EVENT_HANDLED;
 
+ //   if btn1, rnd++
  }
 
  static void end_exit(void* o) {
@@ -176,7 +332,8 @@ static project_states_objects_t state_objects;
 
  }
 
- static void delete_run(void* o) {
+ static enum smf_state_result delete_run(void* o) {
+    return SMF_EVENT_HANDLED;
 
  }
 
@@ -190,10 +347,77 @@ static project_states_objects_t state_objects;
 
  }
 
- static void final_run(void* o) {
+ static enum smf_state_result final_run(void* o) {
+    return SMF_EVENT_HANDLED;
 
  }
 
  static void final_exit(void* o) {
 
  }
+
+
+
+
+
+
+
+
+
+/*-------------------------------------------------
+ * Functions 
+ *-----------------------------------------------*/
+int binaryToDecimal(int binary[], int length) {
+    int decimal = 0;
+
+    for (int i = 0; i < length; i++) {
+        decimal += (binary[length - 1 - i] << i); // binary shifting, better version of 2^i
+    }
+
+    return decimal;
+}
+
+
+
+void led_setting(int led_num, char *state) {
+
+    //Turn each on individually
+    if (led_num == 0) {
+        if (strcmp(state, "ON") == 0) {
+            LED_set(LED0, LED_ON);
+        }
+    }
+
+    if (led_num == 1) {
+        if (strcmp(state, "ON") == 0) {
+            LED_set(LED1, LED_ON);
+        }
+    }
+
+    if (led_num == 2) {
+        if (strcmp(state, "ON") == 0) {
+            LED_set(LED2, LED_ON);
+        }
+    }
+
+    if (led_num == 3) {
+        if (strcmp(state, "ON") == 0) {
+            LED_set(LED3, LED_ON);
+        }
+    }
+
+    // Turn all off
+    if (led_num == 4) {
+        if (strcmp(state, "OFF") == 0) {
+            turn_off_all_leds();
+        }
+    }
+}
+
+
+void turn_off_all_leds() {
+    LED_set(LED0, LED_OFF);
+    LED_set(LED1, LED_OFF);
+    LED_set(LED2, LED_OFF);
+    LED_set(LED3, LED_OFF);
+}

@@ -1,0 +1,9 @@
+config ZEPHYR_AMY_S_EIE_NRF52840_GIT_MODULE
+   bool
+   default y
+config ZEPHYR_CMSIS_6_MODULE
+   bool
+   default y
+config ZEPHYR_HAL_NORDIC_MODULE
+   bool
+   default y
