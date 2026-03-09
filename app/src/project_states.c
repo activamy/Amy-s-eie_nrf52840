@@ -107,7 +107,7 @@ static const char *stitch_names[] = {
 typedef struct {
     enum stitches stitch;
     int amount;
-}
+} the_stitch;
 typedef struct {
   struct smf_ctx ctx;
 
@@ -117,7 +117,7 @@ typedef struct {
   int binary_amount[4]; // binary value from 0 to 9
   int decimal_conversion, decimal_amount;
   
-  enum stitches project_rnd[20][20]; // set limit for how many rounds now and how many can go in each list, edit later
+  the_stitch project_rnd[20][20]; // set limit for how many rounds now and how many can go in each list, edit later
 } project_states_objects_t;
 
 
@@ -137,6 +137,7 @@ static const struct smf_state states[] = {
 };
 
 static project_states_objects_t state_objects;
+static the_stitch stitch;
 
 
 /*----------------------------------------------------------------
@@ -147,9 +148,8 @@ static project_states_objects_t state_objects;
     state_objects.round_number = 0;
     memset(state_objects.project_rnd, 0, sizeof(state_objects.project_rnd));
     memset(state_objects.binary_amount, 0, sizeof(state_objects.binary_amount));
-    if (BTN_check_clear_pressed(BTN0) || BTN_check_clear_pressed(BTN1) || BTN_check_clear_pressed(BTN2) || BTN_check_clear_pressed(BTN3)) {
-        smf_set_initial(SMF_CTX(&state_objects), &states[RND_1]);
-    }
+    
+    smf_set_initial(SMF_CTX(&state_objects), &states[RND_1]);
  }
 
  int project_states_run() {
@@ -168,13 +168,13 @@ static project_states_objects_t state_objects;
 
  static enum smf_state_result start_run(void* o) {
     if (BTN_check_clear_pressed(BTN0)) {
-        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = MAGIC_RING;
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number].stitch = MAGIC_RING;
         printk("%s, ", stitch_names[MAGIC_RING]);
         smf_set_state(SMF_CTX(&state_objects), &states[STITCH_SELECTOR]);
     }
 
     if (BTN_check_clear_pressed(BTN1)) {
-        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = SLIP_KNOT;
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number].stitch = SLIP_KNOT;
         printk("%s, ", stitch_names[SLIP_KNOT]);
         smf_set_state(SMF_CTX(&state_objects), &states[STITCH_SELECTOR]);
     }
@@ -194,25 +194,25 @@ static project_states_objects_t state_objects;
 
  static enum smf_state_result selection_run(void* o) {
     if (BTN_check_clear_pressed(BTN0)) {
-        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = CHAIN;
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number].stitch = CHAIN;
         printk("%s ", stitch_names[CHAIN]);
         smf_set_state(SMF_CTX(&state_objects), &states[AMOUNT]);
     }
 
     if (BTN_check_clear_pressed(BTN1)) {
-        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = SINGLE_CROCHET;
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number].stitch = SINGLE_CROCHET;
         printk("%s ", stitch_names[SINGLE_CROCHET]);
         smf_set_state(SMF_CTX(&state_objects), &states[AMOUNT]);
     }
 
     if (BTN_check_clear_pressed(BTN2)) {
-        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = DOUBLE_CROCHET;
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number].stitch = DOUBLE_CROCHET;
         printk("%s ", stitch_names[DOUBLE_CROCHET]);
         smf_set_state(SMF_CTX(&state_objects), &states[AMOUNT]);
     }
 
     if (BTN_check_clear_pressed(BTN3)) {
-        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number] = HALF_DOUBLE_CROCHET;
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number].stitch = HALF_DOUBLE_CROCHET;
         printk("%s ", stitch_names[HALF_DOUBLE_CROCHET]);
         smf_set_state(SMF_CTX(&state_objects), &states[AMOUNT]);
     }
@@ -295,6 +295,8 @@ static project_states_objects_t state_objects;
 
     if (state_objects.places == 3) {
         printk("%d ", state_objects.decimal_amount);
+        state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number].amount = state_objects.decimal_amount;
+
         smf_set_state(SMF_CTX(&state_objects), &states[RND_REVIEW]);
     }
 
@@ -303,43 +305,54 @@ static project_states_objects_t state_objects;
 
  static void amount_exit(void* o) {
     turn_off_all_leds();
+    state_objects.stitch_number++;
  }
    
 
  // Rnd Review
  static void review_entry(void* o) {
-    state_object_first_appearance = 0;
+    state_objects.first_appearance = 0;
  }
  
  static enum smf_state_result review_run(void* o) {
-    if (state_object.first_appearance == 0){
+    if (state_objects.first_appearance == 0) {
         printk("The result for Round %d: ", state_objects.round_number + 1);
-        state_object.first_appearance++;
+        state_objects.first_appearance++;
 
         for (int i = 0; i < 20; i++) {
-            if (state_objects.project_rnd[state_objects.round_number][i] == 0) {
+            if (state_objects.project_rnd[state_objects.round_number][i].stitch == NO_STITCHES) {
                 break;
         
-            printk("%s, ", stitch_names[state_objects.project_rnd[state_objects.round_number][i]]);
+            printk("%s, ", stitch_names[state_objects.project_rnd[state_objects.round_number][i].stitch]);
             }
         }
         k_msleep(500);
 
-        printk("Select:\n\t1 Continue to round %d\n\t2) Finish project\n\t3) Delete and restart round\n\t
-            4) Restart project %d", state_objects.round_number + 2, state_objects.round_number + 1);
+        printk("Select:\n
+            \t1 Continue to round %d\n
+            \t2) Finish project\n
+            \t3) Restart round\n
+            \t4) Restart entire project", 
+            state_objects.round_number + 2);
     }
 
-    if (BTN_check_clear_pressed(BTN0)) {
+    if (BTN_check_clear_pressed(BTN0)) { // Move to next round
         state_objects.round_number++;
         state_objects.stitch_number = 0;
+        printk("Round %d: ", state_objects.round_number + 1);
         smf_set_state(SMF_CTX(&state_objects), &states[STITCH_SELECTOR]);
     }
 
-    if (BTN_check_clear_pressed(BTN1)) {
+    if (BTN_check_clear_pressed(BTN1)) { // End the project
         smf_set_state(SMF_CTX(&state_objects), &states[FINISH_PROJECT]);
     }
 
-    if ()
+    if (BTN_check_clear_pressed(BTN2)) { // Restart round
+        memset(state_objects.project_rnd[state_objects.round_number], 0, sizeof(state_objects.project_rnd[state_objects.round_number]));
+        state_objects.stitch_number = 0;
+        printk("Restarting...\nRound %d: ", state_objects.round_number + 1);
+        smf_set_state(SMF_CTX(&state_objects), &states[STITCH_SELECTOR]);
+    }
 
     return SMF_EVENT_HANDLED;
 
@@ -368,10 +381,22 @@ static project_states_objects_t state_objects;
 
  // Complete the Project
  static void final_entry(void* o) {
-
+    printk("\n------------------------------------------------\n
+        Printing Project... \n\n");
+    k_msleep(500);
  }
 
  static enum smf_state_result final_run(void* o) {
+    for (int j = 0; j < state_objects.round_number; j++) {
+        printk("Round %d: ", j + 1);
+        for (int k = 0; k < 20; k++) {
+            if (state_objects.project_rnd[j][k].stitch == NO_STITCHES) {
+                break;
+            }
+            printk("%s %d, ", stitch_names[state_objects.project_rnd[j][k].stitch], state_objects.project_rnd[j][k].amount);
+        }
+    printk("\n");
+    }
     return SMF_EVENT_HANDLED;
 
  }
@@ -406,35 +431,25 @@ int binaryToDecimal(int binary[], int length) {
 void led_setting(int led_num, char *state) {
 
     //Turn each on individually
-    if (led_num == 0) {
-        if (strcmp(state, "ON") == 0) {
-            LED_set(LED0, LED_ON);
-        }
+    if (led_num == 0 && strcmp(state, "ON") == 0) {
+        LED_set(LED0, LED_ON);
     }
 
-    if (led_num == 1) {
-        if (strcmp(state, "ON") == 0) {
-            LED_set(LED1, LED_ON);
-        }
+    if (led_num == 1 && strcmp(state, "ON") == 0) {
+        LED_set(LED1, LED_ON);
     }
 
-    if (led_num == 2) {
-        if (strcmp(state, "ON") == 0) {
-            LED_set(LED2, LED_ON);
-        }
+    if (led_num == 2 && strcmp(state, "ON") == 0) {
+        LED_set(LED2, LED_ON);
     }
 
-    if (led_num == 3) {
-        if (strcmp(state, "ON") == 0) {
-            LED_set(LED3, LED_ON);
-        }
+    if (led_num == 3 && strcmp(state, "ON") == 0) {
+        LED_set(LED3, LED_ON);
     }
 
     // Turn all off
     if (led_num == 4) {
-        if (strcmp(state, "OFF") == 0) {
-            turn_off_all_leds();
-        }
+        turn_off_all_leds();
     }
 }
 
