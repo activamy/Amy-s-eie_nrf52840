@@ -9,6 +9,7 @@
 
 #include "BTN.h"
 #include "LED.h"
+#include "states.h"
 
 #define SLEEP_MS 1
 
@@ -21,6 +22,11 @@ int main(void) {
   }
 
   while (1) {
+    int ret = crochet_counter_run();
+    if (0 > ret) {
+      return 0;
+    }
+
     k_msleep(SLEEP_MS);
   }
   return 0;
