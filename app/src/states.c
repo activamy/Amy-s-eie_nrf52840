@@ -16,9 +16,6 @@
 /*-------------------------------
  * Function Prototypes
  *-----------------------------*/
-static void start_entry(void* o);
-static enum smf_state_result start_run(void* o);
-
 static void btn_check_entry(void* o);
 static enum smf_state_result btn_check_run(void* o);
 
@@ -37,14 +34,13 @@ void led_off();
 void led_initialize();
 void led_reset();
 
-void transmit_result(int st_count, int rnd_count);
+// void transmit_result(int st_count, int rnd_count);
 
 
  /*-------------------------------
  * Typedefs
  *-----------------------------*/
  enum states {
- 	START,              // everything is at 0 
  	BTN_CHECK,          // trigger a flag based on btn
  	INC,                // inc
  	DEC,                // dec
@@ -66,7 +62,6 @@ typedef struct {
  * Local Variables
  *-----------------------------*/
 static const struct smf_state states[] = {
-    [START] = SMF_CREATE_STATE(start_entry, start_run, NULL, NULL, NULL),
     [BTN_CHECK] = SMF_CREATE_STATE(btn_check_entry, btn_check_run, NULL, NULL, NULL),
     [INC] = SMF_CREATE_STATE(NULL, inc_run, NULL, NULL, NULL),
     [DEC] = SMF_CREATE_STATE(NULL, dec_run, NULL, NULL, NULL),
@@ -90,7 +85,7 @@ void crochet_counter_init() {
 
     led_initialize();
     printk("Starting!");
-    smf_set_initial(SMF_CTX(&cc_obj), &states[BTN_CHECK])
+    smf_set_initial(SMF_CTX(&cc_obj), &states[BTN_CHECK]);
 }
 
 int crochet_counter_run() {
@@ -131,7 +126,7 @@ static enum smf_state_result btn_check_run(void* o) {
         }
         else ((k_uptime_get() - cc_obj.time_start >= 0) && ((k_uptime_get() - cc_obj.time_start) < 1500)) {
             smf_set_state(SMF_CTX(&cc_obj), &states[INC]);
-        }
+        }FMKLESGMkdslgmdfklgmdgkldmgdss WHAT THE FRICK IS NOT USED??????????? SAHUFANFAJKSFNASOIFka
     }
 
     return SMF_EVENT_HANDLED;
