@@ -128,10 +128,10 @@ static enum smf_state_result btn_check_run(void* o) {
 
     //check whether the intention is an inc, dec, or reset to zero
     if (((!BTN_is_pressed(BTN0)) && !BTN_is_pressed(BTN1)) && (cc_obj.time_start != 0)) {
-        if ((k_uptime_get() - cc_obj.time_start) >= 4000) {
+        if ((k_uptime_get() - cc_obj.time_start) >= 1000) {
             smf_set_state(SMF_CTX(&cc_obj), &states[RESET]);
         }
-        else if ((k_uptime_get() - cc_obj.time_start >= 1500) && ((k_uptime_get() - cc_obj.time_start) < 4000)) {
+        else if ((k_uptime_get() - cc_obj.time_start >= 300) && ((k_uptime_get() - cc_obj.time_start) < 4000)) {
             smf_set_state(SMF_CTX(&cc_obj), &states[DEC]);
         }
         else if ((k_uptime_get() - cc_obj.time_start >= 0) && ((k_uptime_get() - cc_obj.time_start) < 1500)) {
