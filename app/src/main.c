@@ -21,6 +21,8 @@ int main(void) {
     return 0;
   }
 
+  crochet_counter_init();
+  
   while (1) {
     int ret = crochet_counter_run();
     if (0 > ret) {
