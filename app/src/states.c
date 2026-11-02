@@ -6,7 +6,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 
-
 #include "states.h"
 #include "BTN.h"
 #include "LED.h"
