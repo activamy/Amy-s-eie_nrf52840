@@ -58,8 +58,8 @@ int binaryToDecimal(int binary[], int length);
 void led_setting(int led_num, char *state);
 /*
     Require
-      blah blah blah
-    Promises: blah blah blah
+      The specific LED to change the state of, and the desired state.
+    Promises: The specific LED will either turn ON or OFF
 */
 
 void turn_off_all_leds();
@@ -113,10 +113,10 @@ typedef struct {
 typedef struct {
   struct smf_ctx ctx;
 
-  int round_number; // starts at zero, but = rnd 1
+  int round_number;                    // starts at zero, but = rnd 1
   int stitch_number;
-  int places, count, first_appearance;
-  int binary_amount[4]; // binary value from 0 to 9
+  int places, count, first_appearance; // places = which place value, count 
+  int binary_amount[4];                // binary value from 0 to 9
   int decimal_conversion, decimal_amount;
   
   stitch_t project_rnd[20][20]; // set limit for how many rounds now and how many can go in each list, edit later
@@ -476,7 +476,7 @@ int binaryToDecimal(int binary[], int length) {
 void led_setting(int led_num, char *state) {
 
     //Turn each on individually
-    if (led_num == 0 && strcmp(state, "ON") == 0) {
+    if (led_num == 0 && strcmp(state, "ON") == 0) {         // if desired led is 0 and state is required to be on
         LED_set(LED0, LED_ON);
     }
 
@@ -486,15 +486,6 @@ void led_setting(int led_num, char *state) {
 
     if (led_num == 2 && strcmp(state, "ON") == 0) {
         LED_set(LED2, LED_ON);
-    }
-
-    if (led_num == 3) {
-        LED_set(LED3, LED_ON);
-    }
-
-    // Turn all off
-    if (led_num == 4) {
-        turn_off_all_leds();
     }
 }
 
