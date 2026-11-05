@@ -83,13 +83,13 @@ enum states_def {
 
 enum stitches { // Keep adding on as needed
     NO_STITCHES,
-    MAGIC_RING,
-    SLIP_KNOT,
+    MAGIC_RING,             //btn0
+    SLIP_KNOT,              //btn1
 
-    CHAIN, 
-    SINGLE_CROCHET, 
-    DOUBLE_CROCHET, 
-    HALF_DOUBLE_CROCHET,
+    CHAIN,                  //btn0
+    SINGLE_CROCHET,         //btn1
+    DOUBLE_CROCHET,         //btn2
+    HALF_DOUBLE_CROCHET,    //btn3
     /*SLIP_STITCH*/
 };
 
@@ -166,7 +166,8 @@ static project_states_objects_t state_objects;
     printk("--------------------\nProject Begin: \n\nRound 1: ");
     LED_blink(LED0, LED_4HZ);
 }
-
+ 
+ // select starting stitch
  static enum smf_state_result start_run(void* o) {
     if (BTN_check_clear_pressed(BTN0)) {
         state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number].stitch = MAGIC_RING;
@@ -184,7 +185,7 @@ static project_states_objects_t state_objects;
  }
 
  static void start_exit(void* o) {
-    state_objects.stitch_number++;
+    state_objects.stitch_number++;      // move to next stitch
     turn_off_all_leds();
  }
 
@@ -193,7 +194,6 @@ static project_states_objects_t state_objects;
  static void selection_entry(void* o) {
     LED_blink(LED1, LED_4HZ);
  } 
-
  static enum smf_state_result selection_run(void* o) {
     if (BTN_check_clear_pressed(BTN0)) {
         state_objects.project_rnd[state_objects.round_number][state_objects.stitch_number].stitch = CHAIN;
@@ -319,15 +319,20 @@ static project_states_objects_t state_objects;
  static enum smf_state_result review_run(void* o) {
     if (state_objects.first_appearance == 0) {
         printk("\n\nThe result for Round %d: ", state_objects.round_number + 1);
-        state_objects.first_appearance++;
 
         for (int i = 0; i < 20; i++) { 
             if (strcmp(stitch_names[state_objects.project_rnd[state_objects.round_number][i].stitch], "no") == 0) {
                 break;
             }
-
+            if ((i == 0) && (state_objects.first_appearance == 0) && state_objects.round_number == 0) {
+                printk("%s, ", stitch_names[state_objects.project_rnd[state_objects.round_number][i].stitch]);
+            }
+            else{
             printk("%s %d, ", stitch_names[state_objects.project_rnd[state_objects.round_number][i].stitch], state_objects.project_rnd[state_objects.round_number][i].amount);
+            }
         }
+
+        state_objects.first_appearance = 1;
 
         printk("\nSelect:\n\t1) Continue round %d\n\t2) Move to round %d\n\t3) Finish project\n\t4) Move to restart options\n\n", state_objects.round_number + 1, state_objects.round_number + 2);
             //"Select:\n
@@ -342,7 +347,12 @@ static project_states_objects_t state_objects;
         printk("Round %d: ", state_objects.round_number + 1);
 
         for (int i = 0; i < state_objects.stitch_number; i++) {
-            printk("%s %d, ", stitch_names[state_objects.project_rnd[state_objects.round_number][i].stitch], state_objects.project_rnd[state_objects.round_number][i].amount);
+            if ((i == 0) && (state_objects.first_appearance == 1) && state_objects.round_number == 0) { //print first stitch of rnd 1 with no amount, but following first stitchs with an amount
+                printk("%s, ", stitch_names[state_objects.project_rnd[state_objects.round_number][i].stitch]);
+            }
+            else{
+                printk("%s %d, ", stitch_names[state_objects.project_rnd[state_objects.round_number][i].stitch], state_objects.project_rnd[state_objects.round_number][i].amount);
+            }
         }
         smf_set_state(SMF_CTX(&state_objects), &states[STITCH_SELECTOR]);
     }
@@ -426,17 +436,21 @@ static project_states_objects_t state_objects;
                 if (state_objects.project_rnd[j][k+1].stitch == NO_STITCHES) {
                     break;
                 }
-                printk("%s %d, ", stitch_names[state_objects.project_rnd[j][k].stitch], state_objects.project_rnd[j][k].amount);
+                if ((k == 0) && state_objects.first_appearance == 0) {  //print first stitch of rnd 1 with no amount
+                    printk("%s, ", stitch_names[state_objects.project_rnd[j][k].stitch]);
+                }
+                else{
+                    printk("%s %d, ", stitch_names[state_objects.project_rnd[j][k].stitch], state_objects.project_rnd[j][k].amount);                }
             }
 
-            if (state_objects.project_rnd[j][k].stitch != NO_STITCHES) {
+            if (state_objects.project_rnd[j][k].stitch != NO_STITCHES) { //print final stitch with no comma at the end
                 printk("%s %d\n", stitch_names[state_objects.project_rnd[j][k].stitch], state_objects.project_rnd[j][k].amount);
             }
         }
 
         printk("\n----------End----------\n\n");
         printk("Would you like to make another?\n\t1) Yes -> BTN0\n\n");
-        state_objects.first_appearance++;
+        state_objects.first_appearance = 1;
     }
 
     if (BTN_check_clear_pressed(BTN0)) {
